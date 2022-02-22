@@ -7,3 +7,11 @@ Uses Imagick / Intervention (version 3 that supports animated gifs) to take an I
 ```
 
 Stores the original image on the server, applies the resizing and caches the result.
+
+## To start up development
+
+```
+make up
+```
+
+http://localhost:8080

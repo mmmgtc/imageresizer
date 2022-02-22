@@ -18,5 +18,4 @@ Route::get('/', function () {
     return view('welcome');
 });
 
-Route::get('/image/{ipfsid}', [ImageController::class, 'process'])->name('image.process');
-Route::get('/image-from-url', [ImageController::class, 'processFromURL'])->name('image.processFromURL');
+Route::get('/image', [ImageController::class, 'process'])->name('image.process');
