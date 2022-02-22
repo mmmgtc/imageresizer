@@ -1,0 +1,34 @@
+{
+    "name": "intervention/image",
+    "description": "PHP image manipulation",
+    "homepage": "http://image.intervention.io/",
+    "keywords": ["image", "gd", "imagick", "laravel", "watermark", "thumbnail"],
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Oliver Vogel",
+            "email": "oliver@olivervogel.com",
+            "homepage": "http://intervention.io/"
+        }
+    ],
+    "require": {
+        "php": "^8",
+        "intervention/gif": "^3.0",
+        "intervention/mimesniffer": "^0.4.2"
+    },
+    "require-dev": {
+        "phpunit/phpunit": "^9",
+        "mockery/mockery": "^1.4"
+    },
+    "autoload": {
+        "psr-4": {
+            "Intervention\\Image\\": "src"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Intervention\\Image\\Tests\\": "tests"
+        }
+    },
+    "minimum-stability": "alpha"
+}
