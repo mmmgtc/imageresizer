@@ -32,8 +32,6 @@ class ImageController extends Controller
 
         $originalLocation = storage_path() . '/app/images/original/' . $imageId . '.gif';
 
-        error_log('originalLocation: ' . $originalLocation);
-
         if (!file_exists($originalLocation)) {
             // Save a local copy
             $client = new \GuzzleHttp\Client();
@@ -52,7 +50,7 @@ class ImageController extends Controller
             try {
                 $image = $manager->make($originalLocation);
                 if ($request->has('width') && $request->has('height')) {
-                    $image->fit(intval($request->width), intval($request->height));
+                    $image->pad(intval($request->width), intval($request->height));
                 } else if ($request->has('width')) {
                     $image->scale(width: intval($request->width));
                 } else if ($request->has('height')) {
