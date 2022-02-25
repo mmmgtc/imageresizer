@@ -2,19 +2,22 @@
 
 namespace App\Http\Controllers;
 
+use Exception;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Response;
-use Illuminate\Support\Facades\Storage;
 use Intervention\Image\ImageManager;
 
 class ImageController extends Controller
 {
-    private $cacheExpiryInMinutes = 10080;
-
-    public function process(Request $request, $ipfsid)
+    /**
+     * Takes a .gif url, width, height and quality as URL parameters.
+     * Fetches the image and resizes according to the passed parameters.
+     */
+    public function process(Request $request)
     {
         $this->validate($request, [
+            'url' => 'required',
             'width' => 'sometimes|numeric|max:2000|min:1',
             'height' => 'sometimes|numeric|max:2000|min:1',
             'quality' => 'sometimes|numeric|max:100|min:10',
@@ -22,11 +25,12 @@ class ImageController extends Controller
 
         $this->ensureDirectoriesExist();
 
-        $url = 'https://' . $ipfsid . '.ipfs.dweb.link';
+        $url = urldecode($request->url);
+        $imageId = md5($url);
 
         $manager = new ImageManager('imagick');
 
-        $originalLocation = storage_path() . '/app/images/original/' . $ipfsid . '.gif';
+        $originalLocation = storage_path() . '/app/images/original/' . $imageId . '.gif';
 
         if (!file_exists($originalLocation)) {
             // Save a local copy
@@ -34,21 +38,36 @@ class ImageController extends Controller
             $response = $client->request('GET', $url, ['sink' => $originalLocation]);
         }
 
-        $cacheLocation = storage_path() . '/app/images/resized/' . $ipfsid . 'w-' . intval($request->width) . 'h-' . intval($request->height) . 'q-' . intval($request->quality ? $request->quality : 100) . '.gif';
+        $cacheLocation = storage_path() . '/app/images/resized/' . $imageId . 'w-' . intval($request->width) . 'h-' . intval($request->height) . 'q-' . intval($request->quality ? $request->quality : 100) . '.gif';
 
+        $this->resizeImageFromOriginalIfNeeded($manager, $request, $originalLocation, $cacheLocation);
+        return $this->serveImageFromCache($cacheLocation);
+    }
+
+    private function resizeImageFromOriginalIfNeeded($manager, Request $request, $originalLocation, $cacheLocation)
+    {
         if (!file_exists($cacheLocation)) {
-            $image = $manager->make($originalLocation);
-            if ($request->has('width') && $request->has('height')) {
-                $image->fit(intval($request->width), intval($request->height));
-            } else if ($request->has('width')) {
-                $image->scale(width: intval($request->width));
-            } else if ($request->has('height')) {
-                $image->scale(height: intval($request->height));
+            try {
+                $image = $manager->make($originalLocation);
+                if ($request->has('width') && $request->has('height')) {
+                    $image->pad(intval($request->width), intval($request->height));
+                } else if ($request->has('width')) {
+                    $image->scale(width: intval($request->width));
+                } else if ($request->has('height')) {
+                    $image->scale(height: intval($request->height));
+                }
+                $image->toGif($request->quality ? $request->quality : 100)->save($cacheLocation);
+            } catch (\Exception $e) {
+                // it's likely that we're unable to $manager->make the image due to a corrupted file, so remove the original
+                unlink($originalLocation);
+
+                throw new Exception('Unable to $manager->make(' . $originalLocation . ') so remove the original image', 1);
             }
-            $image->toGif($request->quality ? $request->quality : 100)->save($cacheLocation);
         }
+    }
 
-
+    private function serveImageFromCache($cacheLocation)
+    {
         $file = File::get($cacheLocation);
         $type = File::mimeType($cacheLocation);
         $response = Response::make($file, 200);
