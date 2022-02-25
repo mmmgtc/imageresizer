@@ -31,6 +31,8 @@ class ImageController extends Controller
 
         $originalLocation = storage_path() . '/app/images/original/' . $imageId . '.gif';
 
+        error_log('originalLocation: ' . $originalLocation);
+
         if (!file_exists($originalLocation)) {
             // Save a local copy
             $client = new \GuzzleHttp\Client();
