@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use Exception;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Response;
@@ -48,15 +49,22 @@ class ImageController extends Controller
     private function resizeImageFromOriginalIfNeeded($manager, Request $request, $originalLocation, $cacheLocation)
     {
         if (!file_exists($cacheLocation)) {
-            $image = $manager->make($originalLocation);
-            if ($request->has('width') && $request->has('height')) {
-                $image->fit(intval($request->width), intval($request->height));
-            } else if ($request->has('width')) {
-                $image->scale(width: intval($request->width));
-            } else if ($request->has('height')) {
-                $image->scale(height: intval($request->height));
+            try {
+                $image = $manager->make($originalLocation);
+                if ($request->has('width') && $request->has('height')) {
+                    $image->fit(intval($request->width), intval($request->height));
+                } else if ($request->has('width')) {
+                    $image->scale(width: intval($request->width));
+                } else if ($request->has('height')) {
+                    $image->scale(height: intval($request->height));
+                }
+                $image->toGif($request->quality ? $request->quality : 100)->save($cacheLocation);
+            } catch (\Exception $e) {
+                // it's likely that we're unable to $manager->make the image due to a corrupted file, so remove the original
+                unlink($originalLocation);
+
+                throw new Exception('Unable to $manager->make(' . $originalLocation . ') so remove the original image', 1);
             }
-            $image->toGif($request->quality ? $request->quality : 100)->save($cacheLocation);
         }
     }
 
