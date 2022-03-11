@@ -19,7 +19,8 @@
         }
 
         body {
-            margin: 0
+            margin: 0;
+            padding: 10px;
         }
 
         a {
@@ -405,15 +406,20 @@
 </head>
 
 <body class="antialiased">
-    <div class="relative flex items-top justify-center min-h-screen bg-gray-100 dark:bg-gray-900 sm:items-center py-4 sm:pt-0">
+    <div>
+        <h2>Image Resizer</h2>
 
-        url: the url of the image<br />
-        width: the width of the image<br />
-        height: the height of the image<br />
-        If only one dimension is passed in, that dimension is used and the image is scaled. If two dimensions are passed, the image is dropped to that dimensions.
-        <br />
-        quality: the quality of the image, 100 = full quality<br />
-        <br />
+        <p>Takes an image URL, caches the original and produces a resized version based on the parameters below:</p>
+
+        <p>
+            url: the url of the image<br />
+            width: the width of the image<br />
+            height: the height of the image<br />
+            If only one dimension is passed in, that dimension is used and the image is scaled. If two dimensions are passed, the image is dropped to that dimensions.
+            <br />
+            quality: the quality of the image, 100 = full quality<br />
+            <br />
+        </p>
     </div>
 </body>
 
