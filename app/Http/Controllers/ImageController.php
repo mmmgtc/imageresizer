@@ -51,7 +51,7 @@ class ImageController extends Controller
                 return $this->serveImage($image->path);
             } else {
                 // Serve the original
-                return $this->serveImage($storeLocation);
+                return $this->serveImage($storeLocation, 0);
             }
         } else {
             // Initialize the image for processing and return the original until we have a resized image
@@ -65,12 +65,12 @@ class ImageController extends Controller
             ImageAddedEvent::dispatch($image);
 
             // Serve the original
-            return $this->serveImage($storeLocation);
+            return $this->serveImage($storeLocation, 0);
         }
 
 
         // Serve the original
-        return $this->serveImage($storeLocation);
+        return $this->serveImage($storeLocation, 0);
     }
 
     /**
@@ -177,13 +177,17 @@ class ImageController extends Controller
     /**
      * Serve up a specific image.  The path should not include the storage_path()
      */
-    private function serveImage($path, $cacheInSeconds = "29030400")
+    private function serveImage($path, $cacheInSeconds = 29030400)
     {
         $file = File::get(storage_path() . $path);
         $type = File::mimeType(storage_path() . $path);
         $response = Response::make($file, 200);
         $response->header("Content-Type", $type);
-        $response->header("Cache-Control", " public, max-age=" . $cacheInSeconds . ", immutable");
+        if ($cacheInSeconds > 0) {
+            $response->header("Cache-Control", " public, max-age=" . $cacheInSeconds . ", immutable");
+        } else {
+            $response->header("Cache-Control", " no-cache");
+        }
         return $response;
     }
 
