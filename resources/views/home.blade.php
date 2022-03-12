@@ -420,7 +420,7 @@
             quality: the quality of the image, 100 = full quality<br />
         </p>
 
-        <p>While image processing is taking place, the original image (wrong dimensions) is served up. </p>
+        <p>While image processing is taking place, the original image (wrong dimensions) is served up. The processing of images can be ran on a queue by changing QUEUE_CONNECTION=sync to QUEUE_CONNECTION=database in the .env file. See https://laravel.com/docs/9.x/queues to find out how to setup queue processing via Supervisor.</p>
 
         <p>
         <h3>Stats</h3>
