@@ -31,14 +31,12 @@ class ImageController extends Controller
 
         $imageId = $this->getImageIdentifier($request->url);
 
-        //        $manager = new ImageManager('imagick');
-
         // Where the original image will be stored
-        $storeLocation = storage_path() . '/app/images/original/' . $imageId . '.gif';
+        $storeLocation = '/app/images/original/' . $imageId . '.gif';
 
         // Ensure we have an original image to work with or pause until there is one.  Prevent multiple requests for the same image.
         $this->downloadOriginalImageOrWait(urldecode($request->url), $storeLocation, 60);
-        if (!file_exists($storeLocation)) {
+        if (!file_exists(storage_path() . $storeLocation)) {
             throw new Exception("Original image does not exist for " . $request->url, 1);
         }
 
@@ -73,19 +71,6 @@ class ImageController extends Controller
 
         // Serve the original
         return $this->serveImage($storeLocation);
-
-
-
-        // if (!file_exists($storeLocation)) {
-        //     // Save a local copy
-        //     $client = new \GuzzleHttp\Client();
-        //     $response = $client->request('GET', $url, ['sink' => $storeLocation]);
-        // }
-
-        // $cacheLocation = storage_path() . '/app/images/resized/' . $imageId . 'w-' . intval($request->width) . 'h-' . intval($request->height) . 'q-' . intval($request->quality ? $request->quality : 100) . '.gif';
-
-        // $this->resizeImageFromOriginalIfNeeded($manager, $request, $storeLocation, $cacheLocation);
-        // return $this->serveImage($cacheLocation);
     }
 
     /**
@@ -134,7 +119,7 @@ class ImageController extends Controller
                     // Get a local copy of the image to work with asap and ensure multiple requests to download a local copy don't happen
                     Cache::put($cacheName, true, 30);
                     $client = new \GuzzleHttp\Client();
-                    $response = $client->request('GET', $url, ['sink' => $storeLocation]);
+                    $response = $client->request('GET', $url, ['sink' => storage_path() . $storeLocation, 'synchronous' => true]);
                     Cache::forget($cacheName);
                 } else {
                     // Wait until we have an original message
@@ -178,6 +163,7 @@ class ImageController extends Controller
                 $image->nr_times_processed += 1;
                 $image->path = $cacheLocation;
                 $image->processed_at = Carbon::now();
+                $image->size_in_kb = intval(filesize(storage_path() . $cacheLocation) / 1024);
                 $image->save();
             } catch (\Exception $e) {
                 $image->nr_times_processed += 1;
@@ -188,10 +174,13 @@ class ImageController extends Controller
         }
     }
 
-    private function serveImage($location, $cacheInSeconds = "29030400")
+    /**
+     * Serve up a specific image.  The path should not include the storage_path()
+     */
+    private function serveImage($path, $cacheInSeconds = "29030400")
     {
-        $file = File::get($location);
-        $type = File::mimeType($location);
+        $file = File::get(storage_path() . $path);
+        $type = File::mimeType(storage_path() . $path);
         $response = Response::make($file, 200);
         $response->header("Content-Type", $type);
         $response->header("Cache-Control", " public, max-age=" . $cacheInSeconds . ", immutable");
