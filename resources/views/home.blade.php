@@ -407,7 +407,7 @@
 
 <body class="antialiased">
     <div>
-        <h2>Image Resizer</h2>
+        <h1>Image Resizer</h1>
 
         <p>Takes an image URL, caches the original and produces a resized version based on the parameters below:</p>
 
@@ -418,7 +418,17 @@
             If only one dimension is passed in, that dimension is used and the image is scaled. If two dimensions are passed, the image is dropped to that dimensions.
             <br />
             quality: the quality of the image, 100 = full quality<br />
-            <br />
+        </p>
+
+        <p>While image processing is taking place, the original image (wrong dimensions) is served up. </p>
+
+        <p>
+        <h3>Stats</h3>
+        Number of processed images: {{$stats['nr_processed']}}<br />
+        Number of unprocessed images: {{$stats['nr_unprocessed']}}<br />
+        <br />
+        Total images: {{$stats['nr_processed'] + $stats['nr_unprocessed']}}<br />
+
         </p>
     </div>
 </body>

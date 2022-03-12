@@ -175,7 +175,7 @@ class ImageController extends Controller
     }
 
     /**
-     * Serve up a specific image.  The path should not include the storage_path()
+     * Serve up a specific image.  The path should not include the storage_path().  Set $cacheInSeconds to 0 to prevent caching, both in the browser and on any CDN that might sit infront of the server.
      */
     private function serveImage($path, $cacheInSeconds = 29030400)
     {
