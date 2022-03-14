@@ -19,7 +19,8 @@
         }
 
         body {
-            margin: 0
+            margin: 0;
+            padding: 10px;
         }
 
         a {
@@ -405,15 +406,30 @@
 </head>
 
 <body class="antialiased">
-    <div class="relative flex items-top justify-center min-h-screen bg-gray-100 dark:bg-gray-900 sm:items-center py-4 sm:pt-0">
+    <div>
+        <h1>Image Resizer</h1>
 
-        url: the url of the image<br />
-        width: the width of the image<br />
-        height: the height of the image<br />
-        If only one dimension is passed in, that dimension is used and the image is scaled. If two dimensions are passed, the image is dropped to that dimensions.
+        <p>Takes an image URL, caches the original and produces a resized version based on the parameters below:</p>
+
+        <p>
+            url: the url of the image<br />
+            width: the width of the image<br />
+            height: the height of the image<br />
+            If only one dimension is passed in, that dimension is used and the image is scaled. If two dimensions are passed, the image is dropped to that dimensions.
+            <br />
+            quality: the quality of the image, 100 = full quality<br />
+        </p>
+
+        <p>While image processing is taking place, the original image (wrong dimensions) is served up. The processing of images can be ran on a queue by changing QUEUE_CONNECTION=sync to QUEUE_CONNECTION=database in the .env file. See https://laravel.com/docs/9.x/queues to find out how to setup queue processing via Supervisor.</p>
+
+        <p>
+        <h3>Stats</h3>
+        Number of processed images: {{$stats['nr_processed']}}<br />
+        Number of unprocessed images: {{$stats['nr_unprocessed']}}<br />
         <br />
-        quality: the quality of the image, 100 = full quality<br />
-        <br />
+        Total images: {{$stats['nr_processed'] + $stats['nr_unprocessed']}}<br />
+
+        </p>
     </div>
 </body>
 
