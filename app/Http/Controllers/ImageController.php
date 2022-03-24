@@ -113,6 +113,10 @@ class ImageController extends Controller
     {
         $cacheName = 'ImageController::downloadOriginalImageOrWait-' . md5($storeLocation);
 
+        if (file_exists(storage_path() . $storeLocation)) {
+            return;
+        }
+
         for ($i = 1; $i <= $retries; $i++) {
             try {
                 if (!Cache::has($cacheName)) {
