@@ -79,7 +79,7 @@ class ImageController extends Controller
     /**
      * Run through and process all the images that have not yet been resized.  Ensure the function doesn't try and process in parallel
      */
-    public function processUnresizedImages($lockTimeout = 3)
+    public function processUnresizedImages($lockTimeout = 600)
     {
         $cacheName = 'ImageController::processUnresizedImages';
         Cache::forget($cacheName);
@@ -89,9 +89,6 @@ class ImageController extends Controller
             // process some images
             $images = Image::whereNull('processed_at')->where('nr_times_processed', '<=', $this->maxNrTimesToTryAndProcessAnImage)->get();
             foreach ($images as $key => $image) {
-
-                $imageId = $this->getImageIdentifier($image->url);
-
                 $this->resizeImageFromOriginalIfNeeded($image);
             }
 
