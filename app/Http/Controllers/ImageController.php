@@ -14,6 +14,9 @@ use Intervention\Image\ImageManager;
 
 class ImageController extends Controller
 {
+
+    public $maxNrTimesToTryAndProcessAnImage = 3;
+
     /**
      * Takes a .gif url, width, height and quality as URL parameters.
      * Fetches the image and resizes according to the passed parameters.
@@ -84,7 +87,7 @@ class ImageController extends Controller
             Cache::put($cacheName, true, $lockTimeout);
 
             // process some images
-            $images = Image::whereNull('processed_at')->whereNull('processing_at')->get();
+            $images = Image::whereNull('processed_at')->where('nr_times_processed', '<=', $this->maxNrTimesToTryAndProcessAnImage)->get();
             foreach ($images as $key => $image) {
 
                 $imageId = $this->getImageIdentifier($image->url);
