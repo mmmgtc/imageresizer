@@ -20,7 +20,7 @@
 
         body {
             margin: 0;
-            padding: 10px;
+            padding: 20px;
         }
 
         a {
@@ -429,6 +429,16 @@
         <br />
         Total images: {{$stats['nr_processed'] + $stats['nr_unprocessed']}}<br />
 
+        @if (count($stats['unprocessable_images']) > 0)
+        <h4>Unprocessable images</h4>
+
+        <ul>
+            @foreach ($stats['unprocessable_images'] as $key => $image)
+            <li><a href="<?php echo $image->url; ?>" target="_blank"><?php echo $image->url; ?></a></li>
+            @endforeach
+
+            @endif
+        </ul>
         </p>
     </div>
 </body>

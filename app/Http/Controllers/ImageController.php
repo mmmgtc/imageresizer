@@ -14,6 +14,9 @@ use Intervention\Image\ImageManager;
 
 class ImageController extends Controller
 {
+
+    public $maxNrTimesToTryAndProcessAnImage = 3;
+
     /**
      * Takes a .gif url, width, height and quality as URL parameters.
      * Fetches the image and resizes according to the passed parameters.
@@ -76,7 +79,7 @@ class ImageController extends Controller
     /**
      * Run through and process all the images that have not yet been resized.  Ensure the function doesn't try and process in parallel
      */
-    public function processUnresizedImages($lockTimeout = 3)
+    public function processUnresizedImages($lockTimeout = 600, $maxImagesToProcess = 10)
     {
         $cacheName = 'ImageController::processUnresizedImages';
         Cache::forget($cacheName);
@@ -84,11 +87,8 @@ class ImageController extends Controller
             Cache::put($cacheName, true, $lockTimeout);
 
             // process some images
-            $images = Image::whereNull('processed_at')->whereNull('processing_at')->get();
+            $images = Image::whereNull('processed_at')->where('nr_times_processed', '<=', $this->maxNrTimesToTryAndProcessAnImage)->orderBy('created_at', 'asc')->limit($maxImagesToProcess)->get();
             foreach ($images as $key => $image) {
-
-                $imageId = $this->getImageIdentifier($image->url);
-
                 $this->resizeImageFromOriginalIfNeeded($image);
             }
 
@@ -112,6 +112,10 @@ class ImageController extends Controller
     private function downloadOriginalImageOrWait($url, $storeLocation, $seconds = 60, $retries = 3)
     {
         $cacheName = 'ImageController::downloadOriginalImageOrWait-' . md5($storeLocation);
+
+        if (file_exists(storage_path() . $storeLocation)) {
+            return;
+        }
 
         for ($i = 1; $i <= $retries; $i++) {
             try {
