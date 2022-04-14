@@ -162,7 +162,15 @@ class ImageController extends Controller
                 } else if ($image->height) {
                     $imageMaker->scale(height: intval($image->height));
                 }
-                $imageMaker->toGif($image->quality ? $image->quality : 100)->save(storage_path() . $cacheLocation);
+
+                $nrFramesInImage = count($imageMaker->getFrames());
+                if ($nrFramesInImage > 1) {
+                    // For images with frames, use an animated gif
+                    $imageMaker->toPng($image->quality ? $image->quality : 100)->save(storage_path() . $cacheLocation);
+                } else {
+                    // For non-animated images, convert to png, which appears to have the best results
+                    $imageMaker->toPng($image->quality ? $image->quality : 100)->save(storage_path() . $cacheLocation);
+                }
 
                 $image->nr_times_processed += 1;
                 $image->path = $cacheLocation;
