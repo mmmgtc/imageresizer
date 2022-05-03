@@ -148,6 +148,11 @@ class ImageController extends Controller
 
     private function resizeImageFromOriginalIfNeeded(Image $image)
     {
+        // Don't get stuck processing unprocessable images
+        if ($image->nr_times_processed > 3) {
+            return;
+        }
+
         $manager = new ImageManager('imagick');
 
         $imageId = $this->getImageIdentifier($image->url);
@@ -158,6 +163,7 @@ class ImageController extends Controller
         if (!file_exists($cacheLocation)) {
             try {
                 $image->processing_at = Carbon::now();
+                $image->nr_times_processed += 1;
                 $image->save();
 
                 $imageMaker = $manager->make($originalLocation);
@@ -178,15 +184,11 @@ class ImageController extends Controller
                     $imageMaker->toPng($image->quality ? $image->quality : 100)->save(storage_path() . $cacheLocation);
                 }
 
-                $image->nr_times_processed += 1;
                 $image->path = $cacheLocation;
                 $image->processed_at = Carbon::now();
                 $image->size_in_kb = intval(filesize(storage_path() . $cacheLocation) / 1024);
                 $image->save();
             } catch (\Exception $e) {
-                $image->nr_times_processed += 1;
-                $image->save();
-
                 throw new Exception('Unable to resize ' . $image->url . ' with id ' . $image->id, 1);
             }
         }
