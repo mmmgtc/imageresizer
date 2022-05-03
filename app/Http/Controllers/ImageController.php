@@ -189,7 +189,7 @@ class ImageController extends Controller
                 $image->size_in_kb = intval(filesize(storage_path() . $cacheLocation) / 1024);
                 $image->save();
             } catch (\Exception $e) {
-                throw new Exception('Unable to resize ' . $image->url . ' with id ' . $image->id, 1);
+                //                throw new Exception('Unable to resize ' . $image->url . ' with id ' . $image->id, 1);
             }
         }
     }
