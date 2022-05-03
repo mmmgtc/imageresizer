@@ -149,7 +149,7 @@ class ImageController extends Controller
     private function resizeImageFromOriginalIfNeeded(Image $image)
     {
         // Don't get stuck processing unprocessable images
-        if ($image->nr_times_processed > 3) {
+        if ($image->nr_times_processed > $this->maxNrTimesToTryAndProcessAnImage) {
             return;
         }
 
