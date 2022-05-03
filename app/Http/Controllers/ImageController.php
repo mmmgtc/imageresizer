@@ -123,7 +123,13 @@ class ImageController extends Controller
                     // Get a local copy of the image to work with asap and ensure multiple requests to download a local copy don't happen
                     Cache::put($cacheName, true, 30);
                     $client = new \GuzzleHttp\Client();
-                    $response = $client->request('GET', $url, ['sink' => storage_path() . $storeLocation, 'synchronous' => true]);
+                    $response = $client->request('GET', $url, ['connect_timeout' => 10, 'sink' => storage_path() . $storeLocation, 'synchronous' => true]);
+
+                    if ($response->getStatusCode() !== 200) {
+                        // Something went wrong, so remove what was downloaded by $client->request, sink
+                        unlink(storage_path() . $storeLocation);
+                    }
+
                     Cache::forget($cacheName);
                 } else {
                     // Wait until we have an original message
