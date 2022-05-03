@@ -123,7 +123,13 @@ class ImageController extends Controller
                     // Get a local copy of the image to work with asap and ensure multiple requests to download a local copy don't happen
                     Cache::put($cacheName, true, 30);
                     $client = new \GuzzleHttp\Client();
-                    $response = $client->request('GET', $url, ['sink' => storage_path() . $storeLocation, 'synchronous' => true]);
+                    $response = $client->request('GET', $url, ['connect_timeout' => 10, 'sink' => storage_path() . $storeLocation, 'synchronous' => true]);
+
+                    if ($response->getStatusCode() !== 200) {
+                        // Something went wrong, so remove what was downloaded by $client->request, sink
+                        unlink(storage_path() . $storeLocation);
+                    }
+
                     Cache::forget($cacheName);
                 } else {
                     // Wait until we have an original message
@@ -142,6 +148,11 @@ class ImageController extends Controller
 
     private function resizeImageFromOriginalIfNeeded(Image $image)
     {
+        // Don't get stuck processing unprocessable images
+        if ($image->nr_times_processed > $this->maxNrTimesToTryAndProcessAnImage) {
+            return;
+        }
+
         $manager = new ImageManager('imagick');
 
         $imageId = $this->getImageIdentifier($image->url);
@@ -152,6 +163,7 @@ class ImageController extends Controller
         if (!file_exists($cacheLocation)) {
             try {
                 $image->processing_at = Carbon::now();
+                $image->nr_times_processed += 1;
                 $image->save();
 
                 $imageMaker = $manager->make($originalLocation);
@@ -162,18 +174,22 @@ class ImageController extends Controller
                 } else if ($image->height) {
                     $imageMaker->scale(height: intval($image->height));
                 }
-                $imageMaker->toGif($image->quality ? $image->quality : 100)->save(storage_path() . $cacheLocation);
 
-                $image->nr_times_processed += 1;
+                $nrFramesInImage = count($imageMaker->getFrames());
+                if ($nrFramesInImage > 1) {
+                    // For images with frames, use an animated gif
+                    $imageMaker->toGif($image->quality ? $image->quality : 100)->save(storage_path() . $cacheLocation);
+                } else {
+                    // For non-animated images, convert to png, which appears to have the best results
+                    $imageMaker->toPng($image->quality ? $image->quality : 100)->save(storage_path() . $cacheLocation);
+                }
+
                 $image->path = $cacheLocation;
                 $image->processed_at = Carbon::now();
                 $image->size_in_kb = intval(filesize(storage_path() . $cacheLocation) / 1024);
                 $image->save();
             } catch (\Exception $e) {
-                $image->nr_times_processed += 1;
-                $image->save();
-
-                throw new Exception('Unable to resize ' . $image->url . ' with id ' . $image->id, 1);
+                //                throw new Exception('Unable to resize ' . $image->url . ' with id ' . $image->id, 1);
             }
         }
     }
