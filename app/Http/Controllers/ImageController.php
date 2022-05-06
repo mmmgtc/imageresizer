@@ -126,8 +126,17 @@ class ImageController extends Controller
                     $response = $client->request('GET', $url, ['connect_timeout' => 10, 'sink' => storage_path() . $storeLocation, 'synchronous' => true]);
 
                     if ($response->getStatusCode() !== 200) {
-                        // Something went wrong, so remove what was downloaded by $client->request, sink
-                        unlink(storage_path() . $storeLocation);
+                        /**
+                         * If we can't get a response from IPFS, try getting a response from our own node.
+                         */
+                        $backupUrl = str_replace('https://ipfs.io/ipfs/', 'http://139.59.103.146:8080/ipfs/', $url);
+                        $client = new \GuzzleHttp\Client();
+                        $response = $client->request('GET', $backupUrl, ['connect_timeout' => 10, 'sink' => storage_path() . $storeLocation, 'synchronous' => true]);
+
+                        if ($response->getStatusCode() !== 200) {
+                            // Something went wrong, so remove what was downloaded by $client->request, sink
+                            unlink(storage_path() . $storeLocation);
+                        }
                     }
 
                     Cache::forget($cacheName);
