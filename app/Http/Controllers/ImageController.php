@@ -123,17 +123,20 @@ class ImageController extends Controller
                     // Get a local copy of the image to work with asap and ensure multiple requests to download a local copy don't happen
                     Cache::put($cacheName, true, 30);
                     $client = new \GuzzleHttp\Client();
-                    $response = $client->request('GET', $url, ['connect_timeout' => 10, 'sink' => storage_path() . $storeLocation, 'synchronous' => true]);
+                    $response = $client->request('GET', $url, ['connect_timeout' => 30, 'sink' => storage_path() . $storeLocation, 'synchronous' => true]);
 
-                    if ($response->getStatusCode() !== 200) {
+                    if (intval($response->getStatusCode()) !== 200) {
+                        // Remove the downloaded response, as it's invalid
+                        unlink(storage_path() . $storeLocation);
+
                         /**
                          * If we can't get a response from IPFS, try getting a response from our own node.
                          */
                         $backupUrl = str_replace('https://ipfs.io/ipfs/', 'http://139.59.103.146:8080/ipfs/', $url);
                         $client = new \GuzzleHttp\Client();
-                        $response = $client->request('GET', $backupUrl, ['connect_timeout' => 10, 'sink' => storage_path() . $storeLocation, 'synchronous' => true]);
+                        $response = $client->request('GET', $backupUrl, ['connect_timeout' => 30, 'sink' => storage_path() . $storeLocation, 'synchronous' => true]);
 
-                        if ($response->getStatusCode() !== 200) {
+                        if (intval($response->getStatusCode()) !== 200) {
                             // Something went wrong, so remove what was downloaded by $client->request, sink
                             unlink(storage_path() . $storeLocation);
                         }
