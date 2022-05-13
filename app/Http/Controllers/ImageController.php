@@ -15,7 +15,8 @@ use Intervention\Image\ImageManager;
 class ImageController extends Controller
 {
 
-    public $maxNrTimesToTryAndProcessAnImage = 3;
+    private $maxNrTimesToTryAndProcessAnImage = 3; // How many times to retry the processing of an image
+    private $minimumSizeOfOriginalImage = 165; // The minimum size of an original image.  Below this size, remove the original so that a retry occurs.
 
     /**
      * Takes a .gif url, width, height and quality as URL parameters.
@@ -114,7 +115,12 @@ class ImageController extends Controller
         $cacheName = 'ImageController::downloadOriginalImageOrWait-' . md5($storeLocation);
 
         if (file_exists(storage_path() . $storeLocation)) {
-            return;
+            if (filesize(storage_path() . $storeLocation) < $this->minimumSizeOfOriginalImage) {
+                // If our original image size is very small, it indicates a potential error, so remove
+                unlink(storage_path() . $storeLocation);
+            } else {
+                return;
+            }
         }
 
         for ($i = 1; $i <= $retries; $i++) {
