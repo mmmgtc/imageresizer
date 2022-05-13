@@ -15,8 +15,8 @@ use Intervention\Image\ImageManager;
 class ImageController extends Controller
 {
 
-    private $maxNrTimesToTryAndProcessAnImage = 3; // How many times to retry the processing of an image
-    private $minimumSizeOfOriginalImage = 165; // The minimum size of an original image.  Below this size, remove the original so that a retry occurs.
+    private $maxNrTimesToTryAndProcessAnImage = 3; //
+    private $minimumSizeOfOriginalImage = 180; // The minimum size of an original image.  Below this size, remove the original so that a retry occurs.
 
     /**
      * Takes a .gif url, width, height and quality as URL parameters.
@@ -112,15 +112,13 @@ class ImageController extends Controller
      */
     private function downloadOriginalImageOrWait($url, $storeLocation, $seconds = 60, $retries = 3)
     {
+        // Use cache to prevent multiple requests to the same image
         $cacheName = 'ImageController::downloadOriginalImageOrWait-' . md5($storeLocation);
 
+        $this->removeOriginalImageIfItsTooSmall($storeLocation);
+
         if (file_exists(storage_path() . $storeLocation)) {
-            if (filesize(storage_path() . $storeLocation) < $this->minimumSizeOfOriginalImage) {
-                // If our original image size is very small, it indicates a potential error, so remove
-                unlink(storage_path() . $storeLocation);
-            } else {
-                return;
-            }
+            return;
         }
 
         for ($i = 1; $i <= $retries; $i++) {
@@ -129,25 +127,7 @@ class ImageController extends Controller
                     // Get a local copy of the image to work with asap and ensure multiple requests to download a local copy don't happen
                     Cache::put($cacheName, true, 30);
                     $client = new \GuzzleHttp\Client();
-                    $response = $client->request('GET', $url, ['connect_timeout' => 30, 'sink' => storage_path() . $storeLocation, 'synchronous' => true]);
-
-                    if (intval($response->getStatusCode()) !== 200) {
-                        // Remove the downloaded response, as it's invalid
-                        unlink(storage_path() . $storeLocation);
-
-                        /**
-                         * If we can't get a response from IPFS, try getting a response from our own node.
-                         */
-                        $backupUrl = str_replace('https://ipfs.io/ipfs/', 'http://139.59.103.146:8080/ipfs/', $url);
-                        $client = new \GuzzleHttp\Client();
-                        $response = $client->request('GET', $backupUrl, ['connect_timeout' => 30, 'sink' => storage_path() . $storeLocation, 'synchronous' => true]);
-
-                        if (intval($response->getStatusCode()) !== 200) {
-                            // Something went wrong, so remove what was downloaded by $client->request, sink
-                            unlink(storage_path() . $storeLocation);
-                        }
-                    }
-
+                    $client->request('GET', $url, ['connect_timeout' => 30, 'sink' => storage_path() . $storeLocation, 'synchronous' => true]);
                     Cache::forget($cacheName);
                 } else {
                     // Wait until we have an original message
@@ -160,8 +140,35 @@ class ImageController extends Controller
                 }
                 break;
             } catch (Exception $e) {
+                $this->removeOriginalImageIfItsTooSmall($storeLocation);
+
+                try {
+                    /**
+                     * If we can't get a response from IPFS, try getting a response from our own node.
+                     */
+                    $backupUrl = str_replace('https://ipfs.io/ipfs/', 'http://139.59.103.146:8080/ipfs/', $url);
+                    $client = new \GuzzleHttp\Client();
+                    $client->request('GET', $backupUrl, ['connect_timeout' => 30, 'sink' => storage_path() . $storeLocation, 'synchronous' => true]);
+                } catch (Exception $e) {
+                    $this->removeOriginalImageIfItsTooSmall($storeLocation);
+                }
+
+                Cache::forget($cacheName);
             }
         }
+    }
+
+    /**
+     * The way that requests are made, we might end up with an invalid response, e.g. gateway timeout that is stored as a file.  In such cases, the file stored is suspiciously small.  Remove if needed.
+     */
+    private function removeOriginalImageIfItsTooSmall($storeLocation)
+    {
+        if (filesize(storage_path() . $storeLocation) <= $this->minimumSizeOfOriginalImage) {
+            // If our original image size is very small, it indicates a potential error, so remove
+            unlink(storage_path() . $storeLocation);
+            return true;
+        }
+        return false;
     }
 
     private function resizeImageFromOriginalIfNeeded(Image $image)
