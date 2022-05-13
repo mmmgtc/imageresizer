@@ -163,7 +163,7 @@ class ImageController extends Controller
      */
     private function removeOriginalImageIfItsTooSmall($storeLocation)
     {
-        if (filesize(storage_path() . $storeLocation) <= $this->minimumSizeOfOriginalImage) {
+        if (file_exists(storage_path() . $storeLocation) && filesize(storage_path() . $storeLocation) <= $this->minimumSizeOfOriginalImage) {
             // If our original image size is very small, it indicates a potential error, so remove
             unlink(storage_path() . $storeLocation);
             return true;
